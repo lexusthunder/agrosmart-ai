@@ -32,3 +32,6 @@ prometheus-client>=0.19
 
 # --- LLM (Claude API)
 anthropic>=0.40
+
+# --- Voice / Speech-to-text (CPU friendly, ~75MB model)
+faster-whisper>=1.0

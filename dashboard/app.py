@@ -451,17 +451,17 @@ def view_3d_scatter(token: str) -> go.Figure:
     return fig
 
 
-def chat_send(token: str, message: str, history: list) -> tuple[list, str]:
-    """Trimite mesaj la /ml/chat si actualizeaza chat history (gr.Chatbot type=messages)."""
+def chat_send(token: str, message: str, history: list) -> tuple[list, str, str]:
+    """Trimite mesaj la /ml/chat. Returneaza (history, msg_clear, last_reply_pentru_tts)."""
     history = history or []
     if not token:
         history = history + [
             {"role": "user", "content": message or ""},
             {"role": "assistant", "content": "❌ Te rog autentifica-te in tab-ul Autentificare."},
         ]
-        return history, ""
+        return history, "", ""
     if not (message or "").strip():
-        return history, ""
+        return history, "", ""
 
     api_history = [
         {"role": h.get("role"), "content": h.get("content")}
@@ -487,7 +487,55 @@ def chat_send(token: str, message: str, history: list) -> tuple[list, str]:
         {"role": "user", "content": message},
         {"role": "assistant", "content": reply},
     ]
-    return new_history, ""
+    return new_history, "", reply
+
+
+def voice_chat(token: str, audio_path: str | None, history: list) -> tuple[list, str, str | None]:
+    """Trimite audio -> Whisper transcribe + LLM -> chat. Returneaza (history, transcript, audio_for_tts)."""
+    history = history or []
+    if not token:
+        history = history + [
+            {"role": "user", "content": "🎤 (audio)"},
+            {"role": "assistant", "content": "❌ Te rog autentifica-te in tab-ul Autentificare."},
+        ]
+        return history, "", ""
+    if not audio_path:
+        return history, "", ""
+
+    # Trimite audio la /ml/transcribe pentru text
+    try:
+        with open(audio_path, "rb") as f:
+            r = httpx.post(
+                f"{API}/ml/transcribe",
+                headers={"Authorization": f"Bearer {token}"},
+                files={"audio": ("rec.wav", f, "audio/wav")},
+                timeout=120.0,
+            )
+    except httpx.RequestError as exc:
+        history = history + [
+            {"role": "user", "content": "🎤 (audio)"},
+            {"role": "assistant", "content": f"❌ Eroare transcribere: {exc}"},
+        ]
+        return history, "", ""
+
+    if r.status_code != 200:
+        history = history + [
+            {"role": "user", "content": "🎤 (audio)"},
+            {"role": "assistant", "content": f"❌ HTTP {r.status_code}: {r.text[:200]}"},
+        ]
+        return history, "", ""
+
+    transcript = r.json().get("transcript", "").strip()
+    if not transcript:
+        history = history + [
+            {"role": "user", "content": "🎤 (audio)"},
+            {"role": "assistant", "content": "🤔 N-am inteles ce ai spus. Mai incearca."},
+        ]
+        return history, "", ""
+
+    # Trimite transcriptul la chat
+    new_history, _, reply = chat_send(token, transcript, history)
+    return new_history, transcript, reply
 
 
 # ---- UI ---------------------------------------------------------------- #
@@ -783,28 +831,52 @@ def build_ui() -> gr.Blocks:
                     outputs=ml_out,
                 )
 
-            # ---------- AI CHAT ----------
+            # ---------- AI CHAT (text + voice) ----------
             with gr.Tab("🤖 AgroBot AI"):
-                gr.Markdown(
-                    "### Asistent AI alimentat de Claude\n"
-                    "Intreaba orice despre AgroSmart AI: cum merge, cifrele de impact, endpoint-urile API, "
-                    "ce cultura recomanda pentru tine. Raspund in romana, instant, cu context complet."
+                gr.HTML(
+                    """
+                    <div style='background:linear-gradient(135deg,#0F766E15,#84CC1615);
+                                padding:1rem 1.5rem;border-radius:14px;margin-bottom:1rem;
+                                border:1px solid #0F766E33'>
+                      <h3 style='margin:0;color:#0F172A'>🤖 Asistent AI alimentat de Claude Sonnet 4.6</h3>
+                      <p style='margin:.25rem 0 0;color:#475569'>
+                        Scrie sau <b>vorbeste</b> 🎤 cu mine. Iti raspund in romana cu voce 🔊.
+                        Stiu tot despre AgroSmart: ML, API, cifre impact, recomandari culturi.
+                      </p>
+                    </div>
+                    """
                 )
                 chatbot = gr.Chatbot(
-                    height=520,
+                    height=480,
                     type="messages",
                     avatar_images=(None, "https://api.dicebear.com/7.x/bottts/svg?seed=AgroSmart"),
                     elem_classes="chatbot-modern",
                     show_label=False,
                     show_copy_button=True,
+                    elem_id="agrobot_chat",
                 )
+                # Hidden field — JS-ul de TTS asculta schimbarile aici si citeste textul
+                last_reply = gr.Textbox(visible=False, elem_id="last_reply_tts")
+
                 with gr.Row():
                     msg = gr.Textbox(
-                        placeholder="Ex: Ce face AgroSmart? Ce model ML e cel mai bun? Pe cati ha merge?",
-                        show_label=False, scale=8, container=False,
+                        placeholder="Scrie aici SAU foloseste microfonul de mai jos...",
+                        show_label=False, scale=7, container=False,
                     )
-                    send_btn = gr.Button("Trimite", variant="primary", scale=1)
-                with gr.Row():
+                    send_btn = gr.Button("📤 Trimite", variant="primary", scale=1)
+                    tts_toggle = gr.Checkbox(value=True, label="🔊 Voce", scale=1, container=False)
+
+                with gr.Accordion("🎤 Vorbeste cu AgroBot (apesi & vorbesti)", open=True):
+                    audio_in = gr.Audio(
+                        sources=["microphone"],
+                        type="filepath",
+                        label="Apasa, vorbeste 5-10 secunde, opreste — eu transcriu si raspund",
+                        format="wav",
+                        elem_id="voice_input",
+                    )
+                    voice_btn = gr.Button("🎙️ Trimite vocal", variant="primary", size="lg")
+
+                with gr.Accordion("💡 Exemple intrebari", open=False):
                     gr.Examples(
                         examples=[
                             "Ce face AgroSmart AI in 2 randuri?",
@@ -812,11 +884,46 @@ def build_ui() -> gr.Blocks:
                             "Care este economia de apa pe ferma de 10 ha?",
                             "Cum trimit o citire de senzor prin API?",
                             "Recomanda-mi o cultura pentru sol cu pH 6.5 si 200mm precipitatii",
+                            "Cati senzori sunt activi acum si in ce orase?",
                         ],
                         inputs=msg,
                     )
-                send_btn.click(chat_send, [token_state, msg, chatbot], [chatbot, msg])
-                msg.submit(chat_send, [token_state, msg, chatbot], [chatbot, msg])
+
+                # JS: cand last_reply se schimba si toggle-ul e ON -> citeste cu Web Speech API
+                tts_js = """
+                async (reply, enabled) => {
+                  if (!enabled || !reply) return reply;
+                  try {
+                    if ('speechSynthesis' in window) {
+                      window.speechSynthesis.cancel();
+                      const utter = new SpeechSynthesisUtterance(reply.replace(/[*#`_~]/g, ''));
+                      utter.lang = 'ro-RO';
+                      utter.rate = 1.05;
+                      utter.pitch = 1.0;
+                      // Prefera o voce romana daca exista
+                      const voices = window.speechSynthesis.getVoices();
+                      const ro = voices.find(v => v.lang && v.lang.startsWith('ro'));
+                      if (ro) utter.voice = ro;
+                      window.speechSynthesis.speak(utter);
+                    }
+                  } catch (e) { console.warn('TTS failed', e); }
+                  return reply;
+                }
+                """
+
+                # Text submission
+                send_btn.click(
+                    chat_send, [token_state, msg, chatbot], [chatbot, msg, last_reply]
+                ).then(None, [last_reply, tts_toggle], None, js=tts_js)
+                msg.submit(
+                    chat_send, [token_state, msg, chatbot], [chatbot, msg, last_reply]
+                ).then(None, [last_reply, tts_toggle], None, js=tts_js)
+
+                # Voice submission
+                voice_btn.click(
+                    voice_chat, [token_state, audio_in, chatbot],
+                    [chatbot, msg, last_reply],
+                ).then(None, [last_reply, tts_toggle], None, js=tts_js)
 
             # ---------- ISTORIC ----------
             with gr.Tab("📜 Istoric"):
