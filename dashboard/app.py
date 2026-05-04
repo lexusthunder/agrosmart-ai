@@ -208,13 +208,31 @@ def hero_kpis(token: str) -> str:
 
 
 def harta_html(token: str) -> str:
+    """Fetch harta Folium server-side (cu auth) si returneaza HTML inline.
+
+    Iframe nu functioneaza pentru ca nu transporta JWT-ul. Server-side fetch
+    aduce HTML-ul deja randat de Folium si il afiseaza direct.
+    """
     if not token:
         return "<p style='padding:1rem'>❌ Trebuie sa te autentifici intai.</p>"
+    try:
+        r = httpx.get(
+            f"{API}/sensors/map",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=20.0,
+        )
+    except httpx.RequestError as exc:
+        return f"<p style='padding:1rem;color:#DC2626'>❌ Eroare conexiune: {exc}</p>"
+    if r.status_code != 200:
+        return f"<p style='padding:1rem;color:#DC2626'>❌ HTTP {r.status_code}: {r.text[:200]}</p>"
+    # Foloseste srcdoc — iframe-ul renderaza HTML-ul direct, fara request extern,
+    # deci nu trebuie sa transporte JWT.
+    safe_html = r.text.replace('"', "&quot;")
     return (
-        f'<iframe src="{API}/sensors/map" '
+        f'<iframe srcdoc="{safe_html}" '
         f'style="width:100%;height:640px;border:0;border-radius:16px;'
         f'box-shadow:0 8px 32px rgba(15,118,110,0.12)" '
-        f'title="Harta AgroSmart"></iframe>'
+        f'title="Harta AgroSmart" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>'
     )
 
 
@@ -248,7 +266,12 @@ def trend_chart(token: str, metric: str, days: int) -> go.Figure:
     df["timestamp"] = pd.to_datetime(df["timestamp"])
 
     label_map = {"ph": "pH", "umiditate": "Umiditate (%)", "temperatura": "Temperatura (°C)"}
-    color_map = {"ph": "#7B3F00", "umiditate": COLORS["primary"], "temperatura": COLORS["danger"]}
+    rgba_map = {
+        "ph": ("#7B3F00", "rgba(123, 63, 0, 0.18)"),
+        "umiditate": (COLORS["primary"], "rgba(15, 118, 110, 0.18)"),
+        "temperatura": (COLORS["danger"], "rgba(220, 38, 38, 0.18)"),
+    }
+    line_color, fill_rgba = rgba_map.get(metric, (COLORS["primary"], "rgba(15, 118, 110, 0.18)"))
 
     fig = px.area(
         df, x="timestamp", y="valoare",
@@ -257,9 +280,9 @@ def trend_chart(token: str, metric: str, days: int) -> go.Figure:
         template=PLOTLY_TEMPLATE,
     )
     fig.update_traces(
-        line_color=color_map.get(metric, COLORS["primary"]),
+        line_color=line_color,
         line_width=3,
-        fillcolor=color_map.get(metric, COLORS["primary"]) + "33",
+        fillcolor=fill_rgba,
         mode="lines+markers",
         marker=dict(size=6, line=dict(color="white", width=1.5)),
     )
