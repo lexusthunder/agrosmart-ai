@@ -7,7 +7,7 @@ from datetime import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -65,8 +65,14 @@ app.include_router(analytics.router)
 app.include_router(ml.router)
 
 
-@app.get("/", tags=["meta"])
-def root() -> dict[str, str]:
+@app.get("/", tags=["meta"], include_in_schema=False)
+def root() -> RedirectResponse:
+    """Redirect catre dashboard-ul Gradio montat la /ui."""
+    return RedirectResponse(url="/ui", status_code=307)
+
+
+@app.get("/api", tags=["meta"])
+def api_info() -> dict[str, str]:
     return {
         "app": settings.app_name,
         "version": __version__,
@@ -74,6 +80,7 @@ def root() -> dict[str, str]:
         "redoc": "/redoc",
         "metrics": "/metrics",
         "harta": "/sensors/map",
+        "dashboard": "/ui",
     }
 
 
@@ -89,3 +96,17 @@ def metrics(_request: Request) -> PlainTextResponse:
         content=generate_latest(REGISTRY),
         media_type=CONTENT_TYPE_LATEST,
     )
+
+
+# Mount Gradio dashboard at /ui (acelasi proces, fara port separat)
+try:
+    import gradio as gr
+
+    from dashboard.app import build_ui
+
+    _ui = build_ui()
+    app = gr.mount_gradio_app(app, _ui, path="/ui")
+except Exception as exc:  # pragma: no cover
+    import logging
+
+    logging.getLogger(__name__).warning("Nu pot monta Gradio: %s", exc)
