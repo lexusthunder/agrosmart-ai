@@ -1,0 +1,40 @@
+### AgroSmart AI - exemple REST (extensia REST Client)
+
+@host = http://localhost:8000
+
+### Healthcheck
+GET {{host}}/health
+
+### Login (demo)
+# @name login
+POST {{host}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=fermier&password=agrosmart2025
+
+@token = {{login.response.body.access_token}}
+
+### Profil
+GET {{host}}/auth/me
+Authorization: Bearer {{token}}
+
+### Trimite citire senzor
+POST {{host}}/sensors/analiza
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lat": 46.77,
+  "lon": 23.62,
+  "ph": 6.5,
+  "umiditate": 24.0,
+  "temperatura": 28.0
+}
+
+### Listeaza ultimele 20 citiri
+GET {{host}}/sensors/?limit=20
+Authorization: Bearer {{token}}
+
+### Sumar analytics
+GET {{host}}/analytics/summary
+Authorization: Bearer {{token}}

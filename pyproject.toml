@@ -1,0 +1,53 @@
+[project]
+name = "agrosmart-ai"
+version = "1.0.0"
+description = "Sistem inteligent de monitorizare si decizie agricola - FastAPI + Gradio"
+authors = [{ name = "Ureche Ionel Alexandru" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "UP", "S", "C4", "SIM", "RUF"]
+ignore = ["S101", "B008", "RUF100", "UP007"]
+# S101: allow asserts; B008: FastAPI Depends in defaults
+# RUF100: legacy noqa shims tolerate; UP007: keep Optional[X] for clarity
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106", "N802", "B017"]
+"scripts/*" = ["S105", "S106", "S311", "T201", "N806", "E501", "F541"]
+"dashboard/*" = ["S104", "C408"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --strict-markers --tb=short"
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true

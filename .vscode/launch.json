@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AgroSmart: API (FastAPI/Uvicorn)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"],
+      "jinja": true,
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "AgroSmart: Dashboard Gradio",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "dashboard.app",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "AgroSmart: Run All (run.py)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "AgroSmart: Seed DB",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.seed",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "AgroSmart: Pytest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v", "--tb=short"]
+    }
+  ]
+}

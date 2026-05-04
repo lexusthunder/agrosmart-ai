@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite*
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Gradio
+gradio_cached_examples/
+flagged/
+
+# Logs
+*.log
+logs/
+
+# ML artifacts (regenerable via `python -m scripts.train_model`)
+data/*.joblib
+data/alerts.log

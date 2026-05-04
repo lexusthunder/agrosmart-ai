@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "install",
+      "type": "shell",
+      "command": "pip install -r requirements.txt && pip install -r requirements-dev.txt"
+    },
+    { "label": "seed",      "type": "shell", "command": "python -m scripts.seed" },
+    { "label": "run",       "type": "shell", "command": "python run.py", "isBackground": true },
+    { "label": "api",       "type": "shell", "command": "uvicorn app.main:app --reload --port 8000" },
+    { "label": "dashboard", "type": "shell", "command": "python -m dashboard.app" },
+    { "label": "test",      "type": "shell", "command": "pytest --cov=app --cov-report=term-missing" },
+    { "label": "lint",      "type": "shell", "command": "ruff check app tests scripts dashboard" },
+    { "label": "format",    "type": "shell", "command": "ruff check --fix . && black ." }
+  ]
+}

@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  agrosmart:
+    build: .
+    container_name: agrosmart-ai
+    ports:
+      - "8000:8000"   # FastAPI
+      - "7860:7860"   # Gradio dashboard
+    volumes:
+      - ./data:/app/data
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=sqlite:///./data/agrosmart.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production-please-use-a-long-random-key}
+      - DASHBOARD_API_URL=http://localhost:8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
