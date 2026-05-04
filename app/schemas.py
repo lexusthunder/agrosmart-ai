@@ -165,7 +165,9 @@ class ChatMessage(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     raspuns: str
-    model: str = "claude-haiku-4-5"
+    model: str = "claude-sonnet-4-6"
     tokens_utilizate: Optional[int] = None
     cache_hit: bool = False

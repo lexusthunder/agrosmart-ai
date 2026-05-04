@@ -70,8 +70,8 @@ class Settings(BaseSettings):
 
     # ---- LLM (Claude API) — optional
     anthropic_api_key: str = ""
-    llm_model: str = "claude-haiku-4-5"
-    llm_max_tokens: int = 800
+    llm_model: str = "claude-sonnet-4-6"
+    llm_max_tokens: int = 1200
 
     model_config = SettingsConfigDict(
         env_file=".env",
