@@ -3,10 +3,20 @@
 > **Sistem inteligent de monitorizare și decizie agricolă bazat pe FastAPI + Gradio**
 > Autor: **Ureche Ionel Alexandru** · Proiect SDA · 2025
 
+**Repo:** https://github.com/lexusthunder/agrosmart-ai
+
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688)](https://fastapi.tiangolo.com/)
 [![Gradio](https://img.shields.io/badge/Gradio-4.x-orange)](https://gradio.app/)
+[![ML accuracy](https://img.shields.io/badge/ML%20accuracy-99.32%25-brightgreen)](docs/IMPACT.md)
+[![Tests](https://img.shields.io/badge/tests-28%2F28%20passing-success)](tests/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+### 🚀 Deploy live cu un click
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/lexusthunder/agrosmart-ai) [![Open in HF Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-md.svg)](https://huggingface.co/new-space?template=docker&name=agrosmart-ai)
+
+➡️ Ghid complet: **[docs/DEPLOY.md](docs/DEPLOY.md)** · 4 căi: Gradio Share (60s), Render (1-click), HF Spaces (gratis), Fly.io.
 
 AgroSmart AI transformă datele brute de la senzorii IoT din câmp (GPS, pH, umiditate, temperatură) în **decizii agricole automate** (pornește/oprește irigarea, ajustare pH, alerte termice) printr-un API REST modern și un dashboard interactiv.
 
@@ -77,10 +87,16 @@ python -m scripts.seed
 python run.py
 ```
 
-Apoi deschide:
+Apoi deschide (după ce serverul pornește local):
 - 🌐 **Dashboard Gradio:** http://localhost:7860
 - 📚 **Swagger UI:** http://localhost:8000/docs
 - 📕 **ReDoc:** http://localhost:8000/redoc
+- 🗺️ **Hartă ferme:** http://localhost:8000/sensors/map (necesită auth)
+- 📊 **Metrici Prometheus:** http://localhost:8000/metrics
+
+> ⚠️ **Linkurile `localhost:*` merg DOAR pe mașina pe care rulează `python run.py`.**
+> Pentru URL public (demo, juriu, prezentări) → **[docs/DEPLOY.md](docs/DEPLOY.md)**
+> Cea mai rapidă opțiune: `GRADIO_SHARE=true python run.py` → primești un URL `*.gradio.live` valabil 72h.
 
 ### Credențiale demo
 

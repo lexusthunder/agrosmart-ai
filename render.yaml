@@ -1,0 +1,28 @@
+# Render Blueprint — deploy AgroSmart AI cu un click
+# https://render.com/deploy?repo=https://github.com/lexusthunder/agrosmart-ai
+
+services:
+  - type: web
+    name: agrosmart-ai
+    runtime: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt &&
+      curl -sL "https://raw.githubusercontent.com/AbhishekKandoi/Crop-Yield-Prediction-based-on-Indian-Agriculture/main/Crop%20Recommendation%20dataset.csv" -o data/Crop_recommendation.csv &&
+      python -m scripts.train_model
+    startCommand: |
+      python -m scripts.seed &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: APP_ENV
+        value: "production"
+      - key: CORS_ORIGINS
+        value: "*"
+    healthCheckPath: /health
+    autoDeploy: true

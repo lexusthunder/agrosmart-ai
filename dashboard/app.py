@@ -387,6 +387,7 @@ def main() -> None:
         server_name="0.0.0.0",
         server_port=settings.dashboard_port,
         show_api=False,
+        share=settings.gradio_share,
     )
 
 

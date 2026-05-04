@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     # ---- Dashboard
     dashboard_port: int = 7860
     dashboard_api_url: str = "http://localhost:8000"
+    # share=True genereaza URL public temporar prin tunelul Gradio (gradio.live, ~72h)
+    gradio_share: bool = False
 
     # ---- CORS
     cors_origins: str = "http://localhost:7860,http://localhost:3000"

@@ -1,0 +1,42 @@
+# Dockerfile pentru Hugging Face Spaces (SDK: docker)
+# Ruleaza FastAPI + Gradio pe portul 7860 (cerinta HF Spaces).
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Sistem deps minime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dependente Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Codul aplicatiei
+COPY . .
+
+# Permisiuni HF Spaces (user 1000)
+RUN useradd -m -u 1000 user && chown -R user:user /app
+USER user
+
+# Pe HF Spaces, app-ul TREBUIE sa asculte pe 0.0.0.0:7860
+ENV API_HOST=0.0.0.0 \
+    API_PORT=7860 \
+    DASHBOARD_PORT=7861 \
+    DASHBOARD_API_URL=http://localhost:7860 \
+    APP_ENV=production \
+    DEBUG=false \
+    SECRET_KEY=change-me-via-hf-secrets-min-32-chars-please
+
+# Antreneaza modelul la build daca dataset-ul e prezent (sau il descarca + antreneaza)
+RUN curl -sL "https://raw.githubusercontent.com/AbhishekKandoi/Crop-Yield-Prediction-based-on-Indian-Agriculture/main/Crop%20Recommendation%20dataset.csv" \
+    -o data/Crop_recommendation.csv && \
+    python -m scripts.train_model && \
+    python -m scripts.seed
+
+# Porneste DOAR API (HF Spaces da un singur port public — 7860).
+# Dashboard-ul Gradio se monteaza ca subapp via FastAPI sau e accesat prin /docs Swagger UI.
+EXPOSE 7860
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
