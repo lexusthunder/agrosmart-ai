@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     # ---- Rate limiting
     rate_limit_default: str = "60/minute"
 
+    # ---- LLM (Claude API) — optional
+    anthropic_api_key: str = ""
+    llm_model: str = "claude-haiku-4-5"
+    llm_max_tokens: int = 800
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

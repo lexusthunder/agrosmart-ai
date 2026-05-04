@@ -1,5 +1,5 @@
 # Dockerfile pentru Hugging Face Spaces (SDK: docker)
-# Ruleaza FastAPI + Gradio pe portul 7860 (cerinta HF Spaces).
+# Ruleaza FastAPI + Gradio dashboard montat la /ui pe portul 7860.
 
 FROM python:3.11-slim
 
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Dependente Python
+# Dependente Python (pip cache off + verbose progress)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -21,22 +21,23 @@ COPY . .
 RUN useradd -m -u 1000 user && chown -R user:user /app
 USER user
 
-# Pe HF Spaces, app-ul TREBUIE sa asculte pe 0.0.0.0:7860
+# Variabile pentru container
 ENV API_HOST=0.0.0.0 \
     API_PORT=7860 \
-    DASHBOARD_PORT=7861 \
     DASHBOARD_API_URL=http://localhost:7860 \
     APP_ENV=production \
     DEBUG=false \
-    SECRET_KEY=change-me-via-hf-secrets-min-32-chars-please
+    GRADIO_SERVER_NAME=0.0.0.0 \
+    SECRET_KEY=change-me-via-hf-secrets-min-32-chars-please \
+    PORT=7860
 
-# Antreneaza modelul la build daca dataset-ul e prezent (sau il descarca + antreneaza)
+# Build-time: descarca dataset + antreneaza cele 4 modele
 RUN curl -sL "https://raw.githubusercontent.com/AbhishekKandoi/Crop-Yield-Prediction-based-on-Indian-Agriculture/main/Crop%20Recommendation%20dataset.csv" \
     -o data/Crop_recommendation.csv && \
-    python -m scripts.train_model && \
-    python -m scripts.seed
+    python -m scripts.train_model
 
-# Porneste DOAR API (HF Spaces da un singur port public — 7860).
-# Dashboard-ul Gradio se monteaza ca subapp via FastAPI sau e accesat prin /docs Swagger UI.
+# Entrypoint script (face seed la startup pentru DB ephemeral)
+RUN chmod +x start.sh
+
 EXPOSE 7860
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["./start.sh"]

@@ -129,6 +129,8 @@ class TimeseriesResponse(BaseModel):
 class CropInput(BaseModel):
     """Input pentru recomandarea de cultura (parametri sol + climat)."""
 
+    model_config = ConfigDict(protected_namespaces=())
+
     N: float = Field(ge=0, le=300, description="Azot (kg/ha)", examples=[90])
     P: float = Field(ge=0, le=300, description="Fosfor (kg/ha)", examples=[42])
     K: float = Field(ge=0, le=300, description="Potasiu (kg/ha)", examples=[43])
@@ -136,6 +138,10 @@ class CropInput(BaseModel):
     humidity: float = Field(ge=0, le=100, examples=[82.0])
     ph: float = Field(ge=0, le=14, examples=[6.5])
     rainfall: float = Field(ge=0, le=1000, description="mm/an", examples=[202.9])
+    model_ales: Optional[str] = Field(
+        default=None,
+        description="Numele modelului (RandomForest|ExtraTrees|GradientBoosting|LogisticRegression). Daca lipseste, foloseste cel mai bun.",
+    )
 
 
 class CropRecommendation(BaseModel):
@@ -144,4 +150,22 @@ class CropRecommendation(BaseModel):
     cultura_recomandata: str
     incredere: float
     top_3: list[tuple[str, float]]
+    model_folosit: str = "RandomForest"
     model_disponibil: bool = True
+
+
+class ChatMessage(BaseModel):
+    """Mesaj pentru chat-ul cu LLM."""
+
+    intrebare: str = Field(min_length=1, max_length=2000, examples=["Ce face AgroSmart AI?"])
+    istoric: list[dict] = Field(
+        default_factory=list,
+        description="Istoric mesaje [{role: 'user'|'assistant', content: '...'}]",
+    )
+
+
+class ChatResponse(BaseModel):
+    raspuns: str
+    model: str = "claude-haiku-4-5"
+    tokens_utilizate: Optional[int] = None
+    cache_hit: bool = False
